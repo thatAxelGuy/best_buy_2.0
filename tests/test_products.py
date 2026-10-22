@@ -24,8 +24,10 @@ def test_create_valid_product() -> None:
     ],
     ids=["negative-price", "negative-quantity", "empty-name"],
 )
-def test_create_invalid_product_raises(name: str, price: float, quantity: int) -> None:
-    """Verify that creating a product with invalid arguments raises an error."""
+def test_create_invalid_product_raises(
+    name: str, price: float, quantity: int
+) -> None:
+    """Verify that creating a product with invalid arguments raises."""
     with pytest.raises(ValueError):
         Product(name, price, quantity)
 
@@ -61,13 +63,15 @@ def test_buy_more_than_available_raises() -> None:
 
 def test_buy_inactive_product_raises() -> None:
     """Verify that trying to buy inactive products raises an error."""
-    product = Product("Bose Earbuds", price=250, quantity=0)  # auto-deactivates
+    product = Product(
+        "Bose Earbuds", price=250, quantity=0
+    )  # auto-deactivates
     with pytest.raises(ValueError):
         product.buy(1)
 
 
 def test_buy_more_than_maximum_of_limited_product_raises() -> None:
-    """Verify that trying to buy more than the maximum amount raises an error."""
+    """Verify that buying more than the maximum amount raises an error."""
     limited_product = LimitedProduct("Limited", price=100.0, maximum=1)
     with pytest.raises(ValueError):
         limited_product.buy(2)

@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [tool.ruff]
-line-length = 88
+line-length = 79
 target-version = "py312"
 
 [tool.pytest.ini_options]

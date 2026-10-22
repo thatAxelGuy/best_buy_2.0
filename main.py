@@ -73,13 +73,17 @@ def list_products(
             indent = " " * len(prefix)
             details, _, promotion = str(product).partition("\n")
             wrapped = textwrap.fill(
-                f"{prefix}{details}", width=LINE_WIDTH, subsequent_indent=indent
+                f"{prefix}{details}",
+                width=LINE_WIDTH,
+                subsequent_indent=indent,
             )
             # Color after wrapping so escape codes don't count toward the width
             price = f"Price: {product.price}"
             print(
                 wrapped.replace(
-                    price, f"Price: {PRICE_COLOR}{product.price}{RESET_COLOR}", 1
+                    price,
+                    f"Price: {PRICE_COLOR}{product.price}{RESET_COLOR}",
+                    1,
                 )
             )
             if promotion:
@@ -93,7 +97,9 @@ def show_total_quantity(store: Store) -> None:
     print(f"Total amount of items in store: {store.get_total_quantity()}")
 
 
-def _select_product(store: Store, basket: dict[Product, int]) -> Product | None:
+def _select_product(
+    store: Store, basket: dict[Product, int]
+) -> Product | None:
     """Prompt for and return a valid product, or None if the user leaves."""
     while True:
         print("\nAvailable items")
@@ -165,13 +171,17 @@ def make_order(store: Store) -> None:
         if available_stock is None:
             print(f"{product.name} selected!")
         else:
-            print(f"{product.name} selected! Amount remaining: {available_stock}")
+            print(
+                f"{product.name} selected! Amount remaining: {available_stock}"
+            )
 
         quantity = _select_quantity(available_stock)
 
         basket[product] = basket.get(product, 0) + quantity
 
-        continue_order = input("Would you like to add another product? (y/n): ")
+        continue_order = input(
+            "Would you like to add another product? (y/n): "
+        )
 
         if continue_order.lower() == "n":
             break
@@ -186,7 +196,7 @@ def make_order(store: Store) -> None:
 
 
 def _print_order_summary(basket: dict[Product, int], total: float) -> None:
-    """Print summary of the order to screen."""
+    """Print a summary of the order to screen."""
     print("\n" + "=" * 40)
     print("           ORDER SUMMARY")
     print("=" * 40)
@@ -205,7 +215,9 @@ def _print_order_summary(basket: dict[Product, int], total: float) -> None:
             )
             print(f"   {PRICE_COLOR}Saved ${saved:,.2f}{RESET_COLOR}")
 
-    subtotal = sum(product.price * quantity for product, quantity in basket.items())
+    subtotal = sum(
+        product.price * quantity for product, quantity in basket.items()
+    )
 
     print("\n" + "-" * 40)
     if subtotal != total:
@@ -253,7 +265,9 @@ def main() -> None:
         Product("Bose QuietComfort Earbuds", price=250, quantity=500),
         Product("Google Pixel 7", price=500, quantity=250),
         NonStockedProduct("Windows License", price=125),
-        LimitedProduct("Promotional Teddy", price=100, quantity=250, maximum=3),
+        LimitedProduct(
+            "Promotional Teddy", price=100, quantity=250, maximum=3
+        ),
         LimitedProduct("Shipping", price=10, quantity=250, maximum=1),
     ]
 

@@ -52,8 +52,10 @@ def test_order_success(sample_store: Store) -> None:
     assert bose.get_quantity() == 498
 
 
-def test_order_rejects_repeated_product_exceeding_stock(sample_store: Store) -> None:
-    """Reject an order that requests the same product beyond available stock."""
+def test_order_rejects_repeated_product_exceeding_stock(
+    sample_store: Store,
+) -> None:
+    """Reject an order that requests the same product beyond stock."""
     mac = sample_store.products[0]  # 100 in stock
     with pytest.raises(ValueError):
         sample_store.order([(mac, 80), (mac, 80)])

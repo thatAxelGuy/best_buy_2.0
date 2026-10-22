@@ -75,7 +75,8 @@ class Product:
     def __str__(self) -> str:
         """Return a string that represents the product."""
         return (
-            f"{self.name}, Price: {self.price}, Quantity: {self.get_quantity()}"
+            f"{self.name}, Price: {self.price}, "
+            f"Quantity: {self.get_quantity()}"
             f"{self._promotion_label()}"
         )
 
@@ -117,7 +118,7 @@ class Product:
 
 
 class LimitedProduct(Product):
-    """Represent a product that can only bought up to a maximum per purchase."""
+    """Represent a product that can only be bought up to a maximum."""
 
     def __init__(
         self,
@@ -143,7 +144,8 @@ class LimitedProduct(Product):
     def __str__(self) -> str:
         """Return a string that represents the product."""
         return (
-            f"{self.name}, Price: {self.price}, Quantity: {self.get_quantity()}, "
+            f"{self.name}, Price: {self.price}, "
+            f"Quantity: {self.get_quantity()}, "
             f"Limited to {self.maximum} per purchase"
             f"{self._promotion_label()}"
         )
@@ -174,7 +176,9 @@ class LimitedProduct(Product):
 class NonStockedProduct(Product):
     """Represent a non-physical product whose quantity is always 0."""
 
-    def __init__(self, name: str = "Product Name", price: float | int = 0.0) -> None:
+    def __init__(
+        self, name: str = "Product Name", price: float | int = 0.0
+    ) -> None:
         """Initialize a non-physical product with a quantity of 0."""
         super().__init__(name, price, quantity=0)
         self.activate()  # Zero quantity should not deactivate it

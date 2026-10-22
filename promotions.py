@@ -49,7 +49,10 @@ class PercentDiscount(Promotion):
 
     def __repr__(self) -> str:
         """Return an unambiguous string that represents the promotion."""
-        return f"{type(self).__name__}(name={self.name!r}, percent={self.percent!r})"
+        return (
+            f"{type(self).__name__}(name={self.name!r}, "
+            f"percent={self.percent!r})"
+        )
 
     def apply_promotion(self, product: Product, quantity: int) -> float:
         """Return the price with the percentage taken off."""
