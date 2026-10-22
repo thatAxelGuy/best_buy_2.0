@@ -97,57 +97,186 @@ def show_total_quantity(store: Store) -> None:
     print(f"Total amount of items in store: {store.get_total_quantity()}")
 
 
+def _prompt_number(
+    prompt: str,
+    *,
+    minimum: int = 1,
+    maximum: int | None = None,
+    cancel_word: str = "back",
+    invalid: str = "Please enter a valid number.",
+    too_low: str | None = None,
+    too_high: str | None = None,
+) -> int | None:
+    """Prompt until the user enters a whole number within the given bounds.
+
+    Returns None if the user types cancel_word. The too_low and too_high
+    messages fall back to invalid when not given.
+    """
+    while True:
+        text = input(prompt)
+
+        if text.strip().lower() == cancel_word:
+            return None
+
+        if not text.isdigit():
+            print(invalid)
+            continue
+
+        number = int(text)
+
+        if number < minimum:
+            print(too_low or invalid)
+            continue
+
+        if maximum is not None and number > maximum:
+            print(too_high or invalid)
+            continue
+
+        return number
+
+
 def _select_product(
     store: Store, basket: dict[Product, int]
 ) -> Product | None:
     """Prompt for and return a valid product, or None if the user leaves."""
-    while True:
-        print("\nAvailable items")
-        print("-" * 6)
-        products = list_products(store, basket)
-        print("-" * 6)
-        print("Type 'leave' if you want to cancel the order.")
+    print("\nAvailable items")
+    print("-" * 6)
+    products = list_products(store, basket)
+    print("-" * 6)
+    print("Type 'leave' to finish or cancel the order.")
 
-        selection = input("Select a product #: \n")
+    number = _prompt_number(
+        "Select a product #: \n",
+        maximum=len(products),
+        cancel_word="leave",
+        invalid="Please enter a valid product number.",
+        too_low="Please select a product from the list.",
+        too_high="Please select a product from the list.",
+    )
 
-        if selection.lower() == "leave":
-            return None
-
-        if not selection.isdigit():
-            print("Please enter a valid product number.")
-            continue
-
-        product_number = int(selection)
-
-        if product_number < 1 or product_number > len(products):
-            print("Please select a product from the list.")
-            continue
-
-        return products[product_number - 1]
+    return None if number is None else products[number - 1]
 
 
-def _select_quantity(available_stock: int | None) -> int:
+def _select_quantity(available_stock: int | None) -> int | None:
     """Prompt for and return a valid order quantity.
 
     The quantity is bounded by available_stock, or unbounded if it is None.
+    Returns None if the user types 'back'.
+    """
+    return _prompt_number(
+        "How many would you like to order? ('back' to return): ",
+        maximum=available_stock,
+        invalid="Please enter a valid quantity.",
+        too_low="Please enter a value > 0.",
+        too_high=f"Sorry, only {available_stock} are available.",
+    )
+
+
+def _confirm(question: str) -> bool:
+    """Ask a yes/no question until the user answers y or n."""
+    while True:
+        answer = input(f"{question} (y/n): ").strip().lower()
+
+        if answer in ("y", "n"):
+            return answer == "y"
+
+        print("Please answer 'y' or 'n'.")
+
+
+def _basket_subtotal(basket: dict[Product, int]) -> float:
+    """Return the order total before promotions."""
+    return sum(
+        product.price * quantity for product, quantity in basket.items()
+    )
+
+
+def _basket_total(basket: dict[Product, int]) -> float:
+    """Return the order total with promotions applied."""
+    return sum(
+        product.total_price(quantity) for product, quantity in basket.items()
+    )
+
+
+def _edit_basket(basket: dict[Product, int]) -> None:
+    """Let the user change or remove a basket item; 'back' changes nothing."""
+    items = list(basket)
+
+    number = _prompt_number(
+        "Item # to change ('back' to return): ",
+        maximum=len(items),
+        invalid="Please select an item from the basket.",
+    )
+
+    if number is None:
+        return
+
+    product = items[number - 1]
+
+    # the item's own line is replaced, so the limit ignores the basket
+    limit = _orderable_amount(product)
+
+    quantity = _prompt_number(
+        f"New quantity for {product.name} (0 to remove, 'back' to return): ",
+        minimum=0,
+        maximum=limit,
+        invalid="Please enter a valid quantity.",
+        too_high=f"Sorry, only {limit} are available.",
+    )
+
+    if quantity is None:
+        return
+
+    if quantity == 0:
+        del basket[product]
+    else:
+        basket[product] = quantity
+
+
+def _review_basket(store: Store, basket: dict[Product, int]) -> bool:
+    """Let the user review and adjust the basket before checking out.
+
+    Returns True if the order is finished (placed or cancelled) and False
+    if the user wants to keep shopping.
     """
     while True:
-        quantity = input("How many would you like to order?: ")
-        if not quantity.isdigit():
-            print("Please enter a valid quantity.")
-            continue
+        if not basket:
+            print("Your basket is empty.")
+            return False
 
-        if quantity == "0":
-            print("Please enter a value > 0.")
-            continue
+        _print_order_summary(basket, _basket_total(basket), "YOUR BASKET")
+        print("a. Add another product")
+        print("r. Remove or change an item")
+        print("c. Check out")
+        print("x. Cancel order")
+        choice = input("Please choose: ").strip().lower()
 
-        quantity = int(quantity)
+        if choice == "a":
+            return False
 
-        if available_stock is not None and quantity > available_stock:
-            print(f"Sorry, only {available_stock} are available.")
-            continue
+        if choice == "r":
+            _edit_basket(basket)
 
-        return quantity
+        elif choice == "c":
+            if not _confirm(f"Place order for ${_basket_total(basket):,.2f}?"):
+                continue
+
+            try:
+                total = store.order(list(basket.items()))
+            except ValueError as error:
+                print(f"Order failed: {error}")
+                print("Your basket was kept, so you can adjust it.")
+                continue
+
+            _print_order_summary(basket, total)
+            return True
+
+        elif choice == "x":
+            if _confirm("Discard your basket and cancel the order?"):
+                print("Order cancelled.")
+                return True
+
+        else:
+            print("Please choose a, r, c or x.")
 
 
 def make_order(store: Store) -> None:
@@ -158,15 +287,15 @@ def make_order(store: Store) -> None:
         product = _select_product(store, basket)
 
         if product is None:
-            return
-        available_stock = _orderable_amount(product, basket)
+            if not basket:
+                return
 
-        if available_stock == 0:
-            print(
-                "You have already added all available stock of this "
-                "product to your order."
-            )
+            if _review_basket(store, basket):
+                return
+
             continue
+
+        available_stock = _orderable_amount(product, basket)
 
         if available_stock is None:
             print(f"{product.name} selected!")
@@ -177,28 +306,21 @@ def make_order(store: Store) -> None:
 
         quantity = _select_quantity(available_stock)
 
+        if quantity is None:
+            continue
+
         basket[product] = basket.get(product, 0) + quantity
 
-        continue_order = input(
-            "Would you like to add another product? (y/n): "
-        )
-
-        if continue_order.lower() == "n":
-            break
-
-    try:
-        total = store.order(list(basket.items()))
-    except ValueError as error:
-        print(f"Order failed: {error}")
-        return
-
-    _print_order_summary(basket, total)
+        if _review_basket(store, basket):
+            return
 
 
-def _print_order_summary(basket: dict[Product, int], total: float) -> None:
+def _print_order_summary(
+    basket: dict[Product, int], total: float, title: str = "ORDER SUMMARY"
+) -> None:
     """Print a summary of the order to screen."""
     print("\n" + "=" * 40)
-    print("           ORDER SUMMARY")
+    print(title.center(40).rstrip())
     print("=" * 40)
 
     for index, (product, quantity) in enumerate(basket.items(), start=1):
@@ -215,9 +337,7 @@ def _print_order_summary(basket: dict[Product, int], total: float) -> None:
             )
             print(f"   {PRICE_COLOR}Saved ${saved:,.2f}{RESET_COLOR}")
 
-    subtotal = sum(
-        product.price * quantity for product, quantity in basket.items()
-    )
+    subtotal = _basket_subtotal(basket)
 
     print("\n" + "-" * 40)
     if subtotal != total:
