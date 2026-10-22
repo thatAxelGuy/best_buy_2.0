@@ -3,6 +3,7 @@
 import pytest
 
 from products import LimitedProduct, NonStockedProduct, Product
+from promotions import PercentDiscount, SecondHalfPrice, ThirdOneFree
 
 
 def test_create_valid_product() -> None:
@@ -14,22 +15,19 @@ def test_create_valid_product() -> None:
     assert product.is_active()
 
 
-def test_create_product_negative_price_raises() -> None:
-    """Verify that creating a product with a negative price raises an error."""
+@pytest.mark.parametrize(
+    ("name", "price", "quantity"),
+    [
+        ("MacBook Air M2", -10, 100),
+        ("MacBook Air M2", 1450, -5),
+        ("", 1450, 100),
+    ],
+    ids=["negative-price", "negative-quantity", "empty-name"],
+)
+def test_create_invalid_product_raises(name: str, price: float, quantity: int) -> None:
+    """Verify that creating a product with invalid arguments raises an error."""
     with pytest.raises(ValueError):
-        Product("MacBook Air M2", price=-10, quantity=100)
-
-
-def test_create_product_negative_quantity_raises() -> None:
-    """Verify that creating a product with a negative quantity raises an error."""
-    with pytest.raises(ValueError):
-        Product("MacBook Air M2", price=1450, quantity=-5)
-
-
-def test_create_product_empty_name_raises() -> None:
-    """Verify that creating a product with an empty name raises an error."""
-    with pytest.raises(ValueError):
-        Product("", price=1450, quantity=100)
+        Product(name, price, quantity)
 
 
 def test_product_zero_quantity_deactivates() -> None:
@@ -80,3 +78,46 @@ def test_non_stocked_product_quantity_not_zero_raises() -> None:
     non_stocked_product = NonStockedProduct("Non-stocked", price=100)
     with pytest.raises(ValueError):
         non_stocked_product.set_quantity(1)
+
+
+# Promotions
+
+
+@pytest.mark.parametrize(
+    ("quantity", "expected"),
+    [(1, 100), (2, 150), (3, 250), (4, 300), (5, 400)],
+)
+def test_second_half_price_total(quantity: int, expected: float) -> None:
+    """Verify that every second item is charged at half price."""
+    product = Product("Second Half Off", price=100, quantity=10)
+    product.set_promotion(SecondHalfPrice("Second Half Price!"))
+    assert product.total_price(quantity) == expected
+
+
+@pytest.mark.parametrize(
+    ("quantity", "expected"),
+    [(1, 100), (2, 200), (3, 200), (5, 400), (6, 400)],
+)
+def test_third_one_free_total(quantity: int, expected: float) -> None:
+    """Verify that every third item is free."""
+    product = Product("Third One Free", price=100, quantity=10)
+    product.set_promotion(ThirdOneFree("Buy 2 Get 1 Free"))
+    assert product.total_price(quantity) == expected
+
+
+@pytest.mark.parametrize(
+    ("percent", "expected"),
+    [(0, 500), (30, 350), (50, 250), (100, 0)],
+)
+def test_percent_discount_total(percent: float, expected: float) -> None:
+    """Verify that the percentage is taken off the total price."""
+    product = Product("Percent Off", price=100, quantity=10)
+    product.set_promotion(PercentDiscount(f"{percent}% off", percent))
+    assert product.total_price(5) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("percent", [-1, 101])
+def test_percent_discount_rejects_wrong_percentage(percent: float) -> None:
+    """Verify that percent values outside of 0 - 100 are rejected."""
+    with pytest.raises(ValueError, match="between 0 and 100"):
+        PercentDiscount("Invalid", percent)
