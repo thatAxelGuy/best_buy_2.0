@@ -1,6 +1,6 @@
 """Command-line interface for managing Best Buy products and orders."""
 
-from products import Product
+from products import LimitedProduct, NonStockedProduct, Product
 from store import Store
 
 
@@ -16,9 +16,8 @@ def validate_input() -> str:
 
 
 def list_products(
-        store: Store,
-        basket: dict[Product,int] | None = None
-        ) -> list[Product]:
+    store: Store, basket: dict[Product, int] | None = None
+) -> list[Product]:
     """Display and return products with stock available for purchase.
 
     Parameters
@@ -45,9 +44,10 @@ def list_products(
         if available_stock > 0:
             available_products.append(product)
             print(
-                f"{len(available_products)}. "
-                f"{product.name} "
-                f"Quantity: {available_stock}"
+                f"{len(available_products)}. {product.name} "
+                f"Price: {product.price} "
+                f"-- Quantity: {available_stock}"
+
             )
 
     return available_products
@@ -166,12 +166,12 @@ def start(store: Store) -> None:
         "1": list_products,
         "2": show_total_quantity,
         "3": make_order,
-        }
+    }
 
     while True:
         print("\n" + "=" * 40)
         print("              BEST BUY")
-        print("=" * 40 )
+        print("=" * 40)
 
         print("1. List all products in store")
         print("2. Show total amount in store")
@@ -197,7 +197,10 @@ def main() -> None:
         Product("MacBook Air M2", price=1450, quantity=100),
         Product("Bose QuietComfort Earbuds", price=250, quantity=500),
         Product("Google Pixel 7", price=500, quantity=250),
-        ]
+        NonStockedProduct("Windows License", price=125),
+        LimitedProduct("Shipping", price=10, quantity=250, maximum=1),
+    ]
+
 
     best_buy = Store(product_list)
     start(best_buy)

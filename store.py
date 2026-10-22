@@ -1,4 +1,5 @@
 """Provide the Store class for managing products and orders."""
+
 from products import Product
 
 

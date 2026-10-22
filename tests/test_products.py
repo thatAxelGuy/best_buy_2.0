@@ -2,7 +2,7 @@
 
 import pytest
 
-from products import Product
+from products import LimitedProduct, NonStockedProduct, Product
 
 
 def test_create_valid_product() -> None:
@@ -68,4 +68,14 @@ def test_buy_inactive_product_raises() -> None:
         product.buy(1)
 
 
+def test_buy_more_than_maximum_of_limited_product_raises() -> None:
+    """Verify that trying to buy more than the maximum amount raises an error."""
+    limited_product = LimitedProduct("Limited", price=100.0, maximum=1)
+    with pytest.raises(ValueError):
+        limited_product.buy(2)
 
+def test_non_stocked_product_quantity_not_zero_raises() -> None:
+    """Verif that trying to set a non-zero quantity raises an error."""
+    non_stocked_product = NonStockedProduct("Non-stocked", price=100)
+    with pytest.raises(ValueError):
+        non_stocked_product.set_quantity(1)
