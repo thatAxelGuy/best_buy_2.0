@@ -1,6 +1,7 @@
 """Command-line interface for managing Best Buy products and orders."""
 
 from products import LimitedProduct, NonStockedProduct, Product
+from promotions import PercentDiscount, SecondHalfPrice, ThirdOneFree
 from store import Store
 
 
@@ -13,6 +14,26 @@ def validate_input() -> str:
         selection = input("Please choose a number:\n")
 
     return selection
+
+
+def _orderable_amount(
+    product: Product, basket: dict[Product, int] | None = None
+) -> int | None:
+    """Return how many more units of a product can be added to the order.
+
+    Returns None when there is no limit (non-stocked products).
+    """
+    if isinstance(product, NonStockedProduct):
+        return None
+
+    amount = product.get_quantity()
+    if isinstance(product, LimitedProduct):
+        amount = min(amount, product.maximum)
+
+    if basket is not None:
+        amount -= basket.get(product, 0)
+
+    return amount
 
 
 def list_products(
@@ -37,18 +58,11 @@ def list_products(
     available_products = []
 
     for product in products:
-        available_stock = product.get_quantity()
-        if basket is not None:
-            available_stock -= basket.get(product, 0)
+        orderable = _orderable_amount(product, basket)
 
-        if available_stock > 0:
+        if orderable is None or orderable > 0:
             available_products.append(product)
-            print(
-                f"{len(available_products)}. {product.name} "
-                f"Price: {product.price} "
-                f"-- Quantity: {available_stock}"
-
-            )
+            print(f"{len(available_products)}. {product}")
 
     return available_products
 
@@ -85,8 +99,11 @@ def _select_product(store: Store, basket: dict[Product, int]) -> Product | None:
         return products[product_number - 1]
 
 
-def _select_quantity(available_stock: int) -> int:
-    """Prompt for and return a valid order quantity, bounded by available_stock."""
+def _select_quantity(available_stock: int | None) -> int:
+    """Prompt for and return a valid order quantity.
+
+    The quantity is bounded by available_stock, or unbounded if it is None.
+    """
     while True:
         quantity = input("How many would you like to order?: ")
         if not quantity.isdigit():
@@ -99,7 +116,7 @@ def _select_quantity(available_stock: int) -> int:
 
         quantity = int(quantity)
 
-        if quantity > available_stock:
+        if available_stock is not None and quantity > available_stock:
             print(f"Sorry, only {available_stock} are available.")
             continue
 
@@ -115,7 +132,7 @@ def make_order(store: Store) -> None:
 
         if product is None:
             return
-        available_stock = product.get_quantity() - basket.get(product, 0)
+        available_stock = _orderable_amount(product, basket)
 
         if available_stock == 0:
             print(
@@ -124,7 +141,10 @@ def make_order(store: Store) -> None:
             )
             continue
 
-        print(f"{product.name} selected! Amount remaining: {available_stock}")
+        if available_stock is None:
+            print(f"{product.name} selected!")
+        else:
+            print(f"{product.name} selected! Amount remaining: {available_stock}")
 
         quantity = _select_quantity(available_stock)
 
@@ -152,10 +172,19 @@ def _print_order_summary(basket: dict[Product, int], total: float) -> None:
 
     for index, (product, quantity) in enumerate(basket.items(), start=1):
         item_total = product.price * quantity
+        discounted_total = product.total_price(quantity)
         print(f"\n{index}. {product.name}")
         print(f"   ${product.price:,.2f} × {quantity} = ${item_total:,.2f}")
+        promotion = product.get_promotion()
+        if promotion is not None and discounted_total != item_total:
+            print(f"   {promotion.name} -> ${discounted_total:,.2f}")
+
+    subtotal = sum(product.price * quantity for product, quantity in basket.items())
 
     print("\n" + "-" * 40)
+    if subtotal != total:
+        print(f"Subtotal: ${subtotal:,.2f}")
+        print(f"You save: ${subtotal - total:,.2f}")
     print(f"TOTAL: ${total:,.2f}")
     print("=" * 40)
 
@@ -198,9 +227,15 @@ def main() -> None:
         Product("Bose QuietComfort Earbuds", price=250, quantity=500),
         Product("Google Pixel 7", price=500, quantity=250),
         NonStockedProduct("Windows License", price=125),
+        LimitedProduct("Promotional Teddy", price=100, quantity=250, maximum=3),
         LimitedProduct("Shipping", price=10, quantity=250, maximum=1),
     ]
 
+    # setup promotions
+    product_list[0].set_promotion(SecondHalfPrice("Second Half Price!"))
+    product_list[1].set_promotion(ThirdOneFree("Third One Free!"))
+    product_list[3].set_promotion(PercentDiscount("30% off!", percent=30))
+    product_list[4].set_promotion(ThirdOneFree("Buy 2 Get 1 Free!"))
 
     best_buy = Store(product_list)
     start(best_buy)

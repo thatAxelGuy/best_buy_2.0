@@ -74,8 +74,9 @@ def test_buy_more_than_maximum_of_limited_product_raises() -> None:
     with pytest.raises(ValueError):
         limited_product.buy(2)
 
+
 def test_non_stocked_product_quantity_not_zero_raises() -> None:
-    """Verif that trying to set a non-zero quantity raises an error."""
+    """Verify that trying to set a non-zero quantity raises an error."""
     non_stocked_product = NonStockedProduct("Non-stocked", price=100)
     with pytest.raises(ValueError):
         non_stocked_product.set_quantity(1)

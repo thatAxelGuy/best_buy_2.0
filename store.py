@@ -1,6 +1,6 @@
 """Provide the Store class for managing products and orders."""
 
-from products import Product
+from products import NonStockedProduct, Product
 
 
 class Store:
@@ -39,6 +39,9 @@ class Store:
         for product, quantity in shopping_list:
             if not product.is_active():
                 raise ValueError(f"{product.name} is inactive.")
+
+            if isinstance(product, NonStockedProduct):
+                continue
 
             reserved[product] = reserved.get(product, 0) + quantity
             if reserved[product] > product.get_quantity():
