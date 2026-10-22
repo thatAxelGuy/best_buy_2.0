@@ -7,6 +7,7 @@ The application allows users to:
 * View available products
 * Check the total quantity of products in the store
 * Create an order by selecting products and quantities
+* Benefit from product promotions (percentage discounts, second item half price, third item free)
 * View an order summary with the total price
 * Exit the application
 
@@ -16,6 +17,7 @@ The application allows users to:
 .
 ├── main.py
 ├── products.py
+├── promotions.py
 ├── store.py
 ├── requirements.txt
 ├── tests/
@@ -33,6 +35,30 @@ Contains the `Product` class, which manages individual products, including:
 * Quantity
 * Active/inactive status
 * Purchasing products
+* An optional promotion, set with `set_promotion()`
+
+It also provides `NonStockedProduct` (no quantity, e.g. a license) and `LimitedProduct` (a maximum quantity per order).
+
+### `promotions.py`
+
+Contains the `Promotion` abstract base class and its implementations. Each promotion's `apply_promotion(product, quantity)` returns the discounted total price:
+
+| Promotion        | Effect                                      |
+| ---------------- | ------------------------------------------- |
+| `PercentDiscount` | Takes a percentage (0-100) off the price    |
+| `SecondHalfPrice` | Every second item costs half price          |
+| `ThirdOneFree`    | Every third item is free (buy 2, get 1)     |
+
+Attach a promotion to a product:
+
+```python
+from promotions import PercentDiscount
+
+product.set_promotion(PercentDiscount("30% off!", percent=30))
+product.set_promotion(None)  # remove it
+```
+
+Promotions are shown in the product listing and as a discount line in the order summary.
 
 ### `store.py`
 
@@ -108,11 +134,14 @@ python3 -m pytest tests/test_store.py::test_order_rejects_repeated_product_excee
 
 The application starts with the following products:
 
-| Product                   |  Price | Quantity |
-| ------------------------- | -----: | -------: |
-| MacBook Air M2            | $1,450 |      100 |
-| Bose QuietComfort Earbuds |   $250 |      500 |
-| Google Pixel 7            |   $500 |      250 |
+| Product                   |  Price | Quantity | Promotion         |
+| ------------------------- | -----: | -------: | ----------------- |
+| MacBook Air M2            | $1,450 |      100 | Second Half Price |
+| Bose QuietComfort Earbuds |   $250 |      500 | Third One Free    |
+| Google Pixel 7            |   $500 |      250 | -                 |
+| Windows License           |   $125 |        - | 30% off           |
+| Promotional Teddy         |   $100 |      250 | Third One Free    |
+| Shipping                  |    $10 |      250 | -                 |
 
 ## Development
 
