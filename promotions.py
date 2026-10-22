@@ -16,6 +16,14 @@ class Promotion(ABC):
         """Initialize the promotion with a name."""
         self.name: str = name
 
+    def __str__(self) -> str:
+        """Return the promotion name."""
+        return self.name
+
+    def __repr__(self) -> str:
+        """Return an unambiguous string that represents the promotion."""
+        return f"{type(self).__name__}(name={self.name!r})"
+
     @abstractmethod
     def apply_promotion(self, product: Product, quantity: int) -> float:
         """Return the discounted total price for buying quantity of product."""
@@ -38,6 +46,10 @@ class PercentDiscount(Promotion):
             raise ValueError("Percent must be between 0 and 100.")
 
         self.percent: float = percent
+
+    def __repr__(self) -> str:
+        """Return an unambiguous string that represents the promotion."""
+        return f"{type(self).__name__}(name={self.name!r}, percent={self.percent!r})"
 
     def apply_promotion(self, product: Product, quantity: int) -> float:
         """Return the price with the percentage taken off."""

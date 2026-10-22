@@ -42,7 +42,7 @@ class Product:
         """Return text describing the current promotion, or an empty string."""
         if self._promotion is None:
             return ""
-        return f", Promotion: {self._promotion.name}"
+        return f"\nPromotion: {self._promotion.name}"
 
     def get_quantity(self) -> int:
         """Return the product quantity."""
@@ -77,6 +77,19 @@ class Product:
         return (
             f"{self.name}, Price: {self.price}, Quantity: {self.get_quantity()}"
             f"{self._promotion_label()}"
+        )
+
+    def _promotion_repr(self) -> str:
+        """Return repr text for the current promotion, or an empty string."""
+        if self._promotion is None:
+            return ""
+        return f", promotion={self._promotion!r}"
+
+    def __repr__(self) -> str:
+        """Return an unambiguous string that represents the product."""
+        return (
+            f"{type(self).__name__}(name={self.name!r}, price={self.price!r}, "
+            f"quantity={self.get_quantity()!r}{self._promotion_repr()})"
         )
 
     def total_price(self, quantity: int) -> float:
@@ -135,6 +148,14 @@ class LimitedProduct(Product):
             f"{self._promotion_label()}"
         )
 
+    def __repr__(self) -> str:
+        """Return an unambiguous string that represents the product."""
+        return (
+            f"{type(self).__name__}(name={self.name!r}, price={self.price!r}, "
+            f"quantity={self.get_quantity()!r}, maximum={self.maximum!r}"
+            f"{self._promotion_repr()})"
+        )
+
     def buy(self, quantity: int) -> float:
         """Buy a quantity, enforcing the per purchase maximum.
 
@@ -175,6 +196,13 @@ class NonStockedProduct(Product):
         return (
             f"{self.name}, Price: {self.price}, Quantity: 0 (not stocked)"
             f"{self._promotion_label()}"
+        )
+
+    def __repr__(self) -> str:
+        """Return an unambiguous string that represents the product."""
+        return (
+            f"{type(self).__name__}(name={self.name!r}, price={self.price!r}"
+            f"{self._promotion_repr()})"
         )
 
     def buy(self, quantity: int) -> float:

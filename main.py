@@ -1,8 +1,15 @@
 """Command-line interface for managing Best Buy products and orders."""
 
+import textwrap
+
 from products import LimitedProduct, NonStockedProduct, Product
 from promotions import PercentDiscount, SecondHalfPrice, ThirdOneFree
 from store import Store
+
+LINE_WIDTH = 80
+PRICE_COLOR = "\033[1;32m"
+PROMOTION_COLOR = "\033[1;33m"
+RESET_COLOR = "\033[0m"
 
 
 def validate_input() -> str:
@@ -62,7 +69,21 @@ def list_products(
 
         if orderable is None or orderable > 0:
             available_products.append(product)
-            print(f"{len(available_products)}. {product}")
+            prefix = f"{len(available_products)}. "
+            indent = " " * len(prefix)
+            details, _, promotion = str(product).partition("\n")
+            wrapped = textwrap.fill(
+                f"{prefix}{details}", width=LINE_WIDTH, subsequent_indent=indent
+            )
+            # Color after wrapping so escape codes don't count toward the width
+            price = f"Price: {product.price}"
+            print(
+                wrapped.replace(
+                    price, f"Price: {PRICE_COLOR}{product.price}{RESET_COLOR}", 1
+                )
+            )
+            if promotion:
+                print(f"{indent}{PROMOTION_COLOR}{promotion}{RESET_COLOR}")
 
     return available_products
 
@@ -177,14 +198,19 @@ def _print_order_summary(basket: dict[Product, int], total: float) -> None:
         print(f"   ${product.price:,.2f} × {quantity} = ${item_total:,.2f}")
         promotion = product.get_promotion()
         if promotion is not None and discounted_total != item_total:
-            print(f"   {promotion.name} -> ${discounted_total:,.2f}")
+            saved = item_total - discounted_total
+            print(
+                f"   {PROMOTION_COLOR}{promotion.name} -> "
+                f"${discounted_total:,.2f}{RESET_COLOR}"
+            )
+            print(f"   {PRICE_COLOR}Saved ${saved:,.2f}{RESET_COLOR}")
 
     subtotal = sum(product.price * quantity for product, quantity in basket.items())
 
     print("\n" + "-" * 40)
     if subtotal != total:
         print(f"Subtotal: ${subtotal:,.2f}")
-        print(f"You save: ${subtotal - total:,.2f}")
+        print(f"{PRICE_COLOR}You save: ${subtotal - total:,.2f}{RESET_COLOR}")
     print(f"TOTAL: ${total:,.2f}")
     print("=" * 40)
 
